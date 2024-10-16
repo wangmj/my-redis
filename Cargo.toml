@@ -21,3 +21,11 @@ path="examples/get-redis.rs"
 [[example]]
 name="hello-myredis"
 path="examples/hello-myredis/main.rs"
+
+[[bin]]
+name="mini_redis_start"
+path="src/bin/server.rs"
+
+[[bin]]
+name="mini_redis_client"
+path="src/bin/client.rs"

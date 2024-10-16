@@ -4,17 +4,17 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use connection::Frame;
 use tokio::net::{TcpListener, TcpStream};
 
+use crate::connection::{self,Frame};
+
 type Db = Arc<Mutex<HashMap<String, String>>>;
-mod connection;
-#[tokio::main]
-async fn main() {
+
+pub async fn run(port:u16) {
     let db = Arc::new(Mutex::new(HashMap::new()));
 
-    let bind_ip = "127.0.0.1:9000";
-    let tcp_listener = TcpListener::bind(bind_ip).await.unwrap();
+    let bind_ip = format!("127.0.0.1:{port}");
+    let tcp_listener = TcpListener::bind(&bind_ip).await.unwrap();
     println!("server start at:{}", bind_ip);
     loop {
         let accept_tcp = tcp_listener.accept().await;
