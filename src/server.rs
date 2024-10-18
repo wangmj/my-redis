@@ -6,7 +6,7 @@ use std::{
 
 use tokio::net::{TcpListener, TcpStream};
 
-use crate::connection::{self,Frame};
+use crate::{connection, frame::Frame};
 
 type Db = Arc<Mutex<HashMap<String, String>>>;
 
@@ -31,36 +31,18 @@ async fn process_socket(socket: TcpStream, db: Db) -> Result<(), Error> {
     let mut connection = connection::Connection::new(socket);
     let frame = connection.read_frame().await.expect("get frame error");
     match frame {
-        connection::Frame::Simple(s) => {
+        Frame::Simple(s) => {
             println!("get simple frame:{}", s);
-            connection.write_frame(Frame::Null);
+            connection.write_frame(&Frame::Null).await;
         }
-        connection::Frame::Bulk(command) => match command {
-            connection::Command::Set { key, val } => {
-                let mut locked_db = db.lock().unwrap();
-                locked_db.insert(key, val);
-            }
-            connection::Command::Get { key } => {
-                let locked_db = db.lock().unwrap();
-                let val = locked_db.get(&key);
-                match val {
-                    Some(v) => {
-                        connection.write_frame(Frame::Simple(v.to_string()));
-                    }
-                    None => {
-                        connection.write_frame(Frame::Null);
-                    }
-                }
-            }
-        },
-        connection::Frame::Error(e) => {
+        Frame::Error(e) => {
             println!("get error frame:{e}");
         }
-        connection::Frame::Integer(i) => {
+        Frame::Integer(i) => {
             println!("get integer frame:{}", i);
-            connection.write_frame(Frame::Null);
+            connection.write_frame(&Frame::Null).await;
         }
-        connection::Frame::Null => {
+        Frame::Null => {
             println!("get null frame");
         },
     }

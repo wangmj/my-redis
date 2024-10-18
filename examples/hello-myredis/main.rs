@@ -1,4 +1,4 @@
-use std::io::{self, Read, Write};
+use std::io::{self};
 
 use connection::{Connection, Frame};
 use tokio::net::TcpStream;
