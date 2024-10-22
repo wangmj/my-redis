@@ -29,6 +29,7 @@ pub async fn run(port:u16) {
 
 async fn process_socket(socket: TcpStream, db: Db) -> Result<(), Error> {
     let mut connection = connection::Connection::new(socket);
+    println!("start process connection");
     let frame = connection.read_frame().await.expect("get frame error");
     match frame {
         Frame::Simple(s) => {

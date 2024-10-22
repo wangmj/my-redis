@@ -1,6 +1,13 @@
 use std::io::{BufWriter, Cursor, Write};
 
 use bytes::Buf;
+use crate::Result;
+
+#[derive(Debug)]
+pub enum Error {
+    InComplete,
+    Other(crate::Error)
+  } 
 
 #[derive(Debug)]
 pub enum Frame {
@@ -11,34 +18,64 @@ pub enum Frame {
     Null,
     // Array(Vec<Frame>),
 }
-
-impl From<Vec<u8>> for Frame {
-    fn from(buf: Vec<u8>) -> Self {
-        let mut cursor_reader = Cursor::new(buf);
-        let flag = cursor_reader.get_u8();
-        match flag {
+impl Frame{
+    pub fn check(buf:& mut Cursor<&[u8]>)->Result<()>{
+        let first_byte=buf.get_u8();
+        match first_byte {
             b'-' => {
-                let line = get_line(&mut cursor_reader);
-                Frame::Error(String::from_utf8(line.to_vec()).unwrap())
+                get_line(buf)?;
+                Ok(())
+                // Frame::Error(String::from_utf8(line.to_vec()).unwrap())
             }
             b'+' => {
-                let line = get_line(&mut cursor_reader);
-                Frame::Simple(String::from_utf8(line.to_vec()).unwrap())
+                let _ = get_line(buf)?;
+                // Frame::Simple(String::from_utf8(line.to_vec()).unwrap())
+                Ok(())
             }
             b':' => {
                 use atoi::atoi;
-                let line = get_line(&mut cursor_reader);
+                let line = get_line(buf)?;
                 let num = atoi::<u64>(line);
                 match num {
-                    Some(num) => Frame::Integer(num),
-                    None => Frame::Error("Parse integer error".to_string()),
+                    Some(_) => Ok(()),
+                    None => Err("not found integer".into()),
                 }
             }
             b'_'=>{
-                Frame::Null
+                Ok(())
             },
             _ => {
-                Frame::Error("Unknow frame type".to_string())
+                std::result::Result::Err("Unknow frame type".into())
+            }
+        }
+        // Ok(Frame::Null)
+    }
+
+    pub fn parse(buf:& mut Cursor<&[u8]>)->Result<Frame>{
+        let first_byte=buf.get_u8();
+        match first_byte {
+            b'-'=>{
+                let line=get_line(buf)?;
+                Ok(Frame::Error(String::from_utf8(line.to_vec())?))
+            },
+            b'+'=>{
+                let line=get_line(buf)?;
+                Ok(Frame::Simple(String::from_utf8(line.to_vec())?))
+            },
+            b':'=>{
+                use atoi::atoi;
+                let line = get_line(buf)?;
+                let num = atoi::<u64>(line);
+                match num {
+                    Some(i) => Ok(Frame::Integer(i)),
+                    None => Err("not found integer".into()),
+                }
+            }
+            b'_'=>{
+                Ok(Frame::Null)
+            },
+            _ => {
+                std::result::Result::Err("Unknow frame type".into())
             }
         }
     }
@@ -76,7 +113,7 @@ impl From<&Frame> for Vec<u8>{
     }
 }
 
-fn get_line(cursor_reader: &mut Cursor<Vec<u8>>) -> &[u8] {
+fn get_line<'a>(cursor_reader: &mut Cursor<&'a [u8]>) -> Result<&'a [u8]> {
     let start = cursor_reader.position() as usize;
     let mut end = cursor_reader.get_ref().len();
     for i in start..end {
@@ -86,5 +123,7 @@ fn get_line(cursor_reader: &mut Cursor<Vec<u8>>) -> &[u8] {
             break;
         }
     }
-    cursor_reader.get_ref()[start..end].as_ref()
+   let res= cursor_reader.get_ref()[start..end].as_ref();
+   Ok(res)
 }
+

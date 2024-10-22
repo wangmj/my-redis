@@ -6,7 +6,7 @@ async fn main() {
     let ipadd = "127.0.0.1:9000";
     let tcpsocket = TcpStream::connect(ipadd).await.unwrap();
     let mut socket_conn = Connection::new(tcpsocket);
-    let frame = Frame::Simple("hello".to_string());
+    let frame = Frame::Simple("hello this is a large string......".to_string());
     socket_conn.write_frame(&frame).await;
     let resp_frame = socket_conn.read_frame().await;
     println!("get response frame:{:?}", resp_frame);
