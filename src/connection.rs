@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use crate::{frame::Frame, Result};
+use crate::{frame::Frame, Error, Result};
 
 use bytes::{Buf, BytesMut};
 use tokio::{
@@ -21,15 +21,15 @@ impl Connection {
             buffer: BytesMut::with_capacity(4 * 1024),
         }
     }
-    pub async fn read_frame(&mut self) -> Result<Frame> {
+    pub async fn read_frame(&mut self) -> Result<Option<Frame>> {
         loop {
-            if let Ok(Some(frame)) = self.parse_frame().await {
+            if let Ok(frame) = self.parse_frame().await {
                 return Ok(frame);
             }
 
             if 0 == self.socket.read_buf(&mut self.buffer).await? {
                 if self.buffer.is_empty() {
-                    return Ok(Frame::Null);
+                    return Ok(None);
                 } else {
                     return Err("connection had been closed!".into());
                 }
@@ -45,9 +45,6 @@ impl Connection {
     }
     async fn parse_frame(&mut self) -> Result<Option<Frame>> {
         println!("parse frame start");
-        if self.buffer.is_empty() {
-            return Ok(None);
-        }
         //从BytesMut中拿出来一个副本。
         let mut cursor: Cursor<&[u8]> = Cursor::new(&self.buffer[..]);
         match Frame::check(&mut cursor) {

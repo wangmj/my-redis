@@ -1,7 +1,6 @@
-use std::io::{BufWriter, Cursor, Write};
+use std::{fmt::write, io::{BufWriter, Cursor, Write}, path::Display, string::FromUtf8Error};
 
 use bytes::Buf;
-use crate::Result;
 
 #[derive(Debug)]
 pub enum Error {
@@ -19,8 +18,8 @@ pub enum Frame {
     // Array(Vec<Frame>),
 }
 impl Frame{
-    pub fn check(buf:& mut Cursor<&[u8]>)->Result<()>{
-        let first_byte=buf.get_u8();
+    pub fn check(buf:& mut Cursor<&[u8]>)->Result<(),Error>{
+        let first_byte=get_u8(buf)?;
         match first_byte {
             b'-' => {
                 get_line(buf)?;
@@ -51,8 +50,8 @@ impl Frame{
         // Ok(Frame::Null)
     }
 
-    pub fn parse(buf:& mut Cursor<&[u8]>)->Result<Frame>{
-        let first_byte=buf.get_u8();
+    pub fn parse(buf:& mut Cursor<&[u8]>)->Result<Frame,Error>{
+        let first_byte=get_u8(buf)?;
         match first_byte {
             b'-'=>{
                 let line=get_line(buf)?;
@@ -108,12 +107,11 @@ impl From<&Frame> for Vec<u8>{
         };
         writer.flush().unwrap();
         drop(writer);
-        println!("write frame len:{:?}",vec.len());
         vec
     }
 }
 
-fn get_line<'a>(cursor_reader: &mut Cursor<&'a [u8]>) -> Result<&'a [u8]> {
+fn get_line<'a>(cursor_reader: &mut Cursor<&'a [u8]>) -> Result<&'a [u8],Error> {
     let start = cursor_reader.position() as usize;
     let mut end = cursor_reader.get_ref().len();
     for i in start..end {
@@ -127,3 +125,33 @@ fn get_line<'a>(cursor_reader: &mut Cursor<&'a [u8]>) -> Result<&'a [u8]> {
    Ok(res)
 }
 
+fn get_u8(buf:& mut Cursor<&[u8]>)->Result<u8,Error>{
+ if !buf.has_remaining(){
+    Err(Error::InComplete)
+ }else {
+        Ok(buf.get_u8())
+ }
+}
+
+impl From<&str> for Error{
+    fn from(value: &str) -> Self {
+        Error::Other(value.into())
+    }
+}
+impl From<FromUtf8Error> for Error{
+    fn from(value: FromUtf8Error) -> Self {
+        Error::Other(value.into())
+    }
+    
+}
+
+impl std::error::Error for Error {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::InComplete => write!(f,"not complete frame  "),
+            Error::Other(error) => error.fmt(f),
+        }
+    }
+}

@@ -46,7 +46,7 @@ pub enum Frame{
 
 impl From<Frame> for Vec<u8> {
     fn from(frame: Frame) -> Self {
-        let json=serde_json::to_string(&frame).unwrap();
+        let json: String=serde_json::to_string(&frame).unwrap();
         json.into_bytes()
     }
 }

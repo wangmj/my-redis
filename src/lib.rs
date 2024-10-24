@@ -4,4 +4,4 @@ pub mod connection;
 pub mod frame;
 
 type Result<T>=std::result::Result<T, Error>;
-type Error=Box<dyn std::error::Error>;
+type Error=Box<dyn Send+Sync+ std::error::Error>;
