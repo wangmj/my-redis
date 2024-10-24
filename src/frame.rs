@@ -1,4 +1,4 @@
-use std::{fmt::write, io::{BufWriter, Cursor, Write}, path::Display, string::FromUtf8Error};
+use std::{io::{BufWriter, Cursor, Write}, string::FromUtf8Error};
 
 use bytes::Buf;
 

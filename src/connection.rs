@@ -7,6 +7,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufWriter},
     net::TcpStream,
 };
+use chrono::{Local, Timelike};
 
 pub struct Connection {
     // read_socket:OwnedReadHalf,
@@ -26,14 +27,19 @@ impl Connection {
             if let Ok(frame) = self.parse_frame().await {
                 return Ok(frame);
             }
-
+            //如果读取到0字节，说明连接已经关闭。
+            // 如果客户端就连接，但是不发送数据，那么这里会一直阻塞。
+            log("read socket data to buffer start");
             if 0 == self.socket.read_buf(&mut self.buffer).await? {
                 if self.buffer.is_empty() {
                     return Ok(None);
                 } else {
                     return Err("connection had been closed!".into());
                 }
+            }else{
+                log(format!("read {} bytes",self.buffer.len()).as_str());
             }
+            log("read socket data to buffer end-----------------");
         }
     }
     pub async fn write_frame(&mut self, frame: &Frame) {
@@ -65,4 +71,9 @@ impl Connection {
             }
         }
     }
+}
+
+fn log(s: &str) {
+    let date= Local::now();
+    println!("{}:{}:{}  {}", date.hour(),date.minute(),date.second(),s);
 }
